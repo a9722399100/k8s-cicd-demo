@@ -1,0 +1,41 @@
+name: CI/CD Demo
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-push:
+    runs-on: kubernetes
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build & test backend
+        run: |
+          # 如果有测试脚本，可在这里执行 pytest
+          echo "No tests to run"
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: \${{ secrets.DOCKERHUB_USER }}
+          password: \${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build & push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./backend
+          push: true
+          tags: a9722399100/k8s-cicd-demo-backend:\${{ github.sha }}
+
+  deploy:
+    needs: build-and-push
+    runs-on: kubernetes
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Deploy to Kubernetes
+        run: |
+          kubectl apply -f k8s/deployment.yaml
