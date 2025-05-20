@@ -1,5 +1,4 @@
 name: CI/CD Demo
-
 on:
   push:
     branches: [ main ]
@@ -11,7 +10,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up QEMU
+      - name: Set up QEMU (optional multi-arch)
         uses: docker/setup-qemu-action@v2
 
       - name: Set up Docker Buildx
@@ -25,19 +24,20 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Debug Docker login in CI
+      - name: Debug CI Docker creds
         if: always()
         run: |
-          echo ">>> USER: ${{ secrets.DOCKERHUB_USER }}"
-          echo ">>> TOKEN LEN: ${{ secrets.DOCKERHUB_TOKEN }}"
-          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USER }}" --password-stdin
+          echo ">>> USER=[\$(echo \${{ secrets.DOCKERHUB_USER }})]"
+          echo ">>> TOKEN_LEN=[\$(echo -n \${{ secrets.DOCKERHUB_TOKEN }} | wc -c)]"
+          set -x
+          echo "\${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "\${{ secrets.DOCKERHUB_USER }}" --password-stdin || true
 
       - name: Build & push Docker image
         uses: docker/build-push-action@v4
         with:
           context: ./backend
           push: true
-          tags: a9722399100/k8s-cicd-demo-backend:${{ github.sha }}
+          tags: a9722399100/k8s-cicd-demo-backend:\${{ github.sha }}
 
   deploy:
     needs: build-and-push
